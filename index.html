@@ -12,13 +12,13 @@
 *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
 
 :root {
-  --bg: #0e0e10;
-  --bg-card: #18181b;
-  --text: #e4e0db;
-  --text-muted: #8a8580;
-  --accent: #E8A87C;
-  --accent-dim: #c48a64;
-  --border: #2a2a2e;
+  --bg: #000000;
+  --bg-card: #000100;
+  --text: #abc3b0;
+  --text-muted: #6a8a70;
+  --accent: #05bc44;
+  --accent-dim: #038a32;
+  --border: #0a2a0e;
   --max-w: 640px;
 }
 
@@ -35,7 +35,7 @@ body {
 
 ::selection {
   background: var(--accent);
-  color: var(--bg);
+  color: #000000;
 }
 
 /* --- Hero --- */
@@ -186,7 +186,7 @@ body {
   right: -80px;
   width: 300px;
   height: 300px;
-  background: radial-gradient(circle, rgba(232, 168, 124, 0.06) 0%, transparent 70%);
+  background: radial-gradient(circle, rgba(5, 188, 68, 0.06) 0%, transparent 70%);
   pointer-events: none;
   z-index: -1;
 }
@@ -197,7 +197,7 @@ body {
   left: -60px;
   width: 250px;
   height: 250px;
-  background: radial-gradient(circle, rgba(232, 168, 124, 0.04) 0%, transparent 70%);
+  background: radial-gradient(circle, rgba(5, 188, 68, 0.04) 0%, transparent 70%);
   pointer-events: none;
   z-index: -1;
 }
@@ -350,18 +350,18 @@ import(THREE_URL).then(THREE => {
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
   renderer.toneMappingExposure = 1.4;
 
-  // Bright lighting
-  scene.add(new THREE.AmbientLight(0xffffff, 0.6));
+  // Lighting — jade green theme
+  scene.add(new THREE.AmbientLight(0xffffff, 0.5));
   const mainLight = new THREE.DirectionalLight(0xffffff, 2.0);
   mainLight.position.set(5, 8, 10);
   scene.add(mainLight);
-  const warmLight = new THREE.DirectionalLight(0xE8A87C, 1.5);
+  const warmLight = new THREE.DirectionalLight(0x05bc44, 1.5);
   warmLight.position.set(-4, 3, 8);
   scene.add(warmLight);
-  const rimLight = new THREE.PointLight(0xE8A87C, 2, 40);
+  const rimLight = new THREE.PointLight(0x05bc44, 2, 40);
   rimLight.position.set(0, -3, -8);
   scene.add(rimLight);
-  const topLight = new THREE.PointLight(0xffffff, 1.0, 30);
+  const topLight = new THREE.PointLight(0xabc3b0, 1.0, 30);
   topLight.position.set(0, 10, 5);
   scene.add(topLight);
 
@@ -382,18 +382,18 @@ import(THREE_URL).then(THREE => {
   const depth = 1.0;
   const scale = 1.0; // bigger!
 
-  // Brighter coral material
+  // Jade green material
   const material = new THREE.MeshStandardMaterial({
-    color: 0xE8A87C,
+    color: 0x05bc44,
     roughness: 0.35,
     metalness: 0.7,
-    emissive: 0xE8A87C,
+    emissive: 0x05bc44,
     emissiveIntensity: 0.15,
   });
 
   // White edges
   const edgeMat = new THREE.LineBasicMaterial({
-    color: 0xffffff,
+    color: 0xabc3b0,
     transparent: true,
     opacity: 0.6,
   });
