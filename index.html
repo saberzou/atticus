@@ -47,21 +47,24 @@ body {
   height: 100%;
   pointer-events: none;
   z-index: 0;
+  cursor: grab;
+  pointer-events: auto;
 }
 
 .hero-wrap {
   position: relative;
   overflow: hidden;
-  min-height: 340px;
+  min-height: 420px;
 }
 
 @media (max-width: 600px) {
-  .hero-wrap { min-height: 260px; }
+  .hero-wrap { min-height: 320px; }
 }
 
 .hero-wrap header {
   position: relative;
   z-index: 1;
+  pointer-events: none;
 }
 
 /* --- Layout --- */
@@ -78,6 +81,10 @@ header {
   padding: 80px 0 60px;
   border-bottom: 1px solid var(--border);
   margin-bottom: 64px;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  min-height: 100%;
 }
 
 .site-name {
@@ -87,6 +94,7 @@ header {
   text-transform: uppercase;
   color: var(--accent);
   margin-bottom: 32px;
+  /* Hidden when 3D is active, shown as fallback */
 }
 
 .site-tagline {
@@ -335,157 +343,206 @@ footer {
 <script>/* no-op — CSS handles animations */</script>
 
 <script type="module">
-import('https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js').then(THREE => {const canvas = document.getElementById('hero-canvas');
-const wrap = canvas.parentElement;
+const THREE_URL = 'https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js';
+const FONT_LOADER_URL = 'https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/loaders/FontLoader.js';
+const TEXT_GEO_URL = 'https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/geometries/TextGeometry.js';
+const FONT_URL = 'https://cdn.jsdelivr.net/npm/three@0.170.0/examples/fonts/droid/droid_sans_bold.typeface.json';
 
-const scene = new THREE.Scene();
-const camera = new THREE.PerspectiveCamera(60, wrap.clientWidth / wrap.clientHeight, 0.1, 100);
-camera.position.z = 30;
+Promise.all([
+  import(THREE_URL),
+  import(FONT_LOADER_URL),
+  import(TEXT_GEO_URL),
+]).then(([THREE, { FontLoader }, { TextGeometry }]) => {
 
-const renderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: true });
-renderer.setSize(wrap.clientWidth, wrap.clientHeight);
-renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+  // Hide the flat text name
+  document.querySelector('.site-name').style.display = 'none';
 
-// Particles
-const count = 120;
-const positions = new Float32Array(count * 3);
-const velocities = new Float32Array(count * 3);
-const sizes = new Float32Array(count);
+  const canvas = document.getElementById('hero-canvas');
+  const wrap = canvas.parentElement;
 
-for (let i = 0; i < count; i++) {
-  positions[i * 3]     = (Math.random() - 0.5) * 50;
-  positions[i * 3 + 1] = (Math.random() - 0.5) * 30;
-  positions[i * 3 + 2] = (Math.random() - 0.5) * 20;
-  velocities[i * 3]     = (Math.random() - 0.5) * 0.008;
-  velocities[i * 3 + 1] = (Math.random() - 0.5) * 0.008;
-  velocities[i * 3 + 2] = (Math.random() - 0.5) * 0.004;
-  sizes[i] = Math.random() * 2.5 + 0.5;
-}
+  const scene = new THREE.Scene();
+  const camera = new THREE.PerspectiveCamera(50, wrap.clientWidth / wrap.clientHeight, 0.1, 100);
+  camera.position.set(0, 0, 20);
 
-const geo = new THREE.BufferGeometry();
-geo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
-geo.setAttribute('size', new THREE.BufferAttribute(sizes, 1));
+  const renderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: true });
+  renderer.setSize(wrap.clientWidth, wrap.clientHeight);
+  renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+  renderer.toneMapping = THREE.ACESFilmicToneMapping;
+  renderer.toneMappingExposure = 1.2;
 
-const mat = new THREE.ShaderMaterial({
-  transparent: true,
-  depthWrite: false,
-  uniforms: {
-    uColor: { value: new THREE.Color(0xE8A87C) },
-    uPixelRatio: { value: renderer.getPixelRatio() },
-  },
-  vertexShader: `
-    attribute float size;
-    uniform float uPixelRatio;
-    varying float vAlpha;
-    void main() {
-      vec4 mv = modelViewMatrix * vec4(position, 1.0);
-      gl_Position = projectionMatrix * mv;
-      gl_PointSize = size * uPixelRatio * (20.0 / -mv.z);
-      vAlpha = smoothstep(0.5, 2.5, size) * 0.35;
+  // Lighting
+  const ambient = new THREE.AmbientLight(0xffffff, 0.3);
+  scene.add(ambient);
+
+  const mainLight = new THREE.DirectionalLight(0xE8A87C, 2.5);
+  mainLight.position.set(5, 8, 10);
+  scene.add(mainLight);
+
+  const fillLight = new THREE.DirectionalLight(0x8a8580, 0.8);
+  fillLight.position.set(-5, -2, 5);
+  scene.add(fillLight);
+
+  const rimLight = new THREE.PointLight(0xE8A87C, 1.5, 50);
+  rimLight.position.set(0, 5, -10);
+  scene.add(rimLight);
+
+  // Mouse
+  let mouseX = 0, mouseY = 0;
+  let targetRotX = 0, targetRotY = 0;
+  window.addEventListener('mousemove', (e) => {
+    mouseX = (e.clientX / innerWidth - 0.5) * 2;
+    mouseY = (e.clientY / innerHeight - 0.5) * 2;
+  });
+
+  // Load font and create letters
+  const loader = new FontLoader();
+  loader.load(FONT_URL, (font) => {
+    const letters = 'ATTICUS'.split('');
+    const group = new THREE.Group();
+    const letterMeshes = [];
+    const letterData = [];
+
+    // Material — dark metallic with coral reflections
+    const material = new THREE.MeshStandardMaterial({
+      color: 0x1a1a1e,
+      roughness: 0.25,
+      metalness: 0.9,
+      emissive: 0xE8A87C,
+      emissiveIntensity: 0.08,
+    });
+
+    // Create each letter as a separate mesh
+    let totalWidth = 0;
+    const geometries = [];
+
+    letters.forEach((char) => {
+      const geo = new TextGeometry(char, {
+        font: font,
+        size: 3.5,
+        depth: 1.2,
+        curveSegments: 16,
+        bevelEnabled: true,
+        bevelThickness: 0.08,
+        bevelSize: 0.05,
+        bevelSegments: 4,
+      });
+      geo.computeBoundingBox();
+      const w = geo.boundingBox.max.x - geo.boundingBox.min.x;
+      geometries.push({ geo, width: w });
+      totalWidth += w + 0.4; // letter spacing
+    });
+
+    totalWidth -= 0.4; // remove last spacing
+    let xOffset = -totalWidth / 2;
+
+    geometries.forEach(({ geo, width }, i) => {
+      const mesh = new THREE.Mesh(geo, material.clone());
+      // Center each letter vertically
+      geo.computeBoundingBox();
+      const h = geo.boundingBox.max.y - geo.boundingBox.min.y;
+      mesh.position.set(xOffset, -h / 2, 0);
+      xOffset += width + 0.4;
+
+      // Store initial state for animation
+      letterData.push({
+        mesh,
+        baseY: mesh.position.y,
+        baseZ: 0,
+        startY: mesh.position.y + 8 + i * 2, // stagger from above
+        startZ: -10 - i * 3,
+        delay: i * 0.12,
+        floatOffset: Math.random() * Math.PI * 2,
+        floatSpeed: 0.4 + Math.random() * 0.3,
+        floatAmp: 0.08 + Math.random() * 0.04,
+      });
+
+      // Start off-screen
+      mesh.position.y = mesh.position.y + 8 + i * 2;
+      mesh.position.z = -10 - i * 3;
+      mesh.rotation.x = Math.PI * 0.3;
+      mesh.scale.set(0.3, 0.3, 0.3);
+
+      letterMeshes.push(mesh);
+      group.add(mesh);
+    });
+
+    scene.add(group);
+
+    // Edge wireframe overlay for style
+    letterMeshes.forEach((mesh) => {
+      const edges = new THREE.EdgesGeometry(mesh.geometry, 30);
+      const line = new THREE.LineSegments(edges, new THREE.LineBasicMaterial({
+        color: 0xE8A87C,
+        transparent: true,
+        opacity: 0.15,
+      }));
+      line.position.copy(mesh.position);
+      line.rotation.copy(mesh.rotation);
+      line.scale.copy(mesh.scale);
+      mesh.userData.edgeLine = line;
+      group.add(line);
+    });
+
+    // Animation
+    const clock = new THREE.Clock();
+    let elapsed = 0;
+
+    function animate() {
+      requestAnimationFrame(animate);
+      const delta = clock.getDelta();
+      elapsed += delta;
+
+      // Animate each letter
+      letterData.forEach((ld, i) => {
+        const mesh = ld.mesh;
+        const t = Math.max(0, Math.min(1, (elapsed - ld.delay) / 1.2));
+        // Ease out cubic
+        const ease = 1 - Math.pow(1 - t, 3);
+
+        // Entrance: drop in from above + scale up
+        mesh.position.y = ld.startY + (ld.baseY - ld.startY) * ease;
+        mesh.position.z = ld.startZ + (ld.baseZ - ld.startZ) * ease;
+        mesh.rotation.x = Math.PI * 0.3 * (1 - ease);
+        const s = 0.3 + 0.7 * ease;
+        mesh.scale.set(s, s, s);
+
+        // Floating after entrance
+        if (t >= 1) {
+          mesh.position.y = ld.baseY + Math.sin(elapsed * ld.floatSpeed + ld.floatOffset) * ld.floatAmp;
+        }
+
+        // Sync edge lines
+        const line = mesh.userData.edgeLine;
+        if (line) {
+          line.position.copy(mesh.position);
+          line.rotation.copy(mesh.rotation);
+          line.scale.copy(mesh.scale);
+        }
+      });
+
+      // Mouse influence — tilt the whole group
+      targetRotY = mouseX * 0.25;
+      targetRotX = -mouseY * 0.15;
+      group.rotation.y += (targetRotY - group.rotation.y) * 0.03;
+      group.rotation.x += (targetRotX - group.rotation.x) * 0.03;
+
+      renderer.render(scene, camera);
     }
-  `,
-  fragmentShader: `
-    uniform vec3 uColor;
-    varying float vAlpha;
-    void main() {
-      float d = length(gl_PointCoord - 0.5);
-      if (d > 0.5) discard;
-      float alpha = vAlpha * smoothstep(0.5, 0.15, d);
-      gl_FragColor = vec4(uColor, alpha);
-    }
-  `,
+    animate();
+
+    // Resize
+    const ro = new ResizeObserver(() => {
+      const w = wrap.clientWidth, h = wrap.clientHeight;
+      camera.aspect = w / h;
+      camera.updateProjectionMatrix();
+      renderer.setSize(w, h);
+    });
+    ro.observe(wrap);
+  });
+
+}).catch(() => {
+  // Three.js failed — flat text stays visible
 });
-
-const points = new THREE.Points(geo, mat);
-scene.add(points);
-
-// Connecting lines between nearby particles
-const lineCount = count * (count - 1) / 2;
-const linePositions = new Float32Array(lineCount * 6);
-const lineGeo = new THREE.BufferGeometry();
-lineGeo.setAttribute('position', new THREE.BufferAttribute(linePositions, 3));
-const lineMat = new THREE.LineBasicMaterial({
-  color: 0xE8A87C,
-  transparent: true,
-  opacity: 0.06,
-  depthWrite: false,
-});
-const lines = new THREE.LineSegments(lineGeo, lineMat);
-scene.add(lines);
-
-// Mouse tracking
-let mouseX = 0, mouseY = 0;
-window.addEventListener('mousemove', (e) => {
-  mouseX = (e.clientX / innerWidth - 0.5) * 2;
-  mouseY = (e.clientY / innerHeight - 0.5) * 2;
-});
-
-const clock = new THREE.Clock();
-
-function animate() {
-  requestAnimationFrame(animate);
-  const pos = geo.attributes.position.array;
-
-  // Drift particles
-  for (let i = 0; i < count; i++) {
-    pos[i * 3]     += velocities[i * 3];
-    pos[i * 3 + 1] += velocities[i * 3 + 1];
-    pos[i * 3 + 2] += velocities[i * 3 + 2];
-
-    // Wrap around
-    if (Math.abs(pos[i * 3])     > 25) velocities[i * 3]     *= -1;
-    if (Math.abs(pos[i * 3 + 1]) > 15) velocities[i * 3 + 1] *= -1;
-    if (Math.abs(pos[i * 3 + 2]) > 10) velocities[i * 3 + 2] *= -1;
-  }
-  geo.attributes.position.needsUpdate = true;
-
-  // Update connection lines
-  let lineIdx = 0;
-  const threshold = 12;
-  for (let i = 0; i < count; i++) {
-    for (let j = i + 1; j < count; j++) {
-      const dx = pos[i*3] - pos[j*3];
-      const dy = pos[i*3+1] - pos[j*3+1];
-      const dz = pos[i*3+2] - pos[j*3+2];
-      const dist = Math.sqrt(dx*dx + dy*dy + dz*dz);
-      if (dist < threshold) {
-        linePositions[lineIdx*6]   = pos[i*3];
-        linePositions[lineIdx*6+1] = pos[i*3+1];
-        linePositions[lineIdx*6+2] = pos[i*3+2];
-        linePositions[lineIdx*6+3] = pos[j*3];
-        linePositions[lineIdx*6+4] = pos[j*3+1];
-        linePositions[lineIdx*6+5] = pos[j*3+2];
-        lineIdx++;
-      }
-    }
-  }
-  // Zero out remaining lines
-  for (let i = lineIdx * 6; i < linePositions.length; i++) linePositions[i] = 0;
-  lineGeo.attributes.position.needsUpdate = true;
-  lineGeo.setDrawRange(0, lineIdx * 2);
-
-  // Subtle mouse influence on camera
-  camera.position.x += (mouseX * 3 - camera.position.x) * 0.02;
-  camera.position.y += (-mouseY * 2 - camera.position.y) * 0.02;
-  camera.lookAt(0, 0, 0);
-
-  // Slow rotation
-  points.rotation.y += 0.0003;
-  lines.rotation.y = points.rotation.y;
-
-  renderer.render(scene, camera);
-}
-animate();
-
-// Resize
-const ro = new ResizeObserver(() => {
-  const w = wrap.clientWidth, h = wrap.clientHeight;
-  camera.aspect = w / h;
-  camera.updateProjectionMatrix();
-  renderer.setSize(w, h);
-});
-ro.observe(wrap);
-}).catch(() => {}); // Three.js failed to load — content still works
 </script>
 
 </body>
