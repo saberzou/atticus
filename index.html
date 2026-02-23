@@ -205,12 +205,17 @@ footer {
 
 /* --- Entry animations --- */
 .entry {
-  opacity: 0;
-  transform: translateY(20px);
+  opacity: 1;
+  transform: translateY(0);
   transition: opacity 0.6s ease, transform 0.6s ease;
 }
 
-.entry.visible {
+.entry.animate {
+  opacity: 0;
+  transform: translateY(20px);
+}
+
+.entry.animate.visible {
   opacity: 1;
   transform: translateY(0);
 }
@@ -306,6 +311,9 @@ footer {
 <script>
 // Intersection observer for entry animations
 const entries = document.querySelectorAll('.entry');
+// Set initial hidden state via JS so content shows if JS fails
+entries.forEach(entry => entry.classList.add('animate'));
+
 const observer = new IntersectionObserver((items) => {
   items.forEach(item => {
     if (item.isIntersecting) {
@@ -313,7 +321,7 @@ const observer = new IntersectionObserver((items) => {
       observer.unobserve(item);
     }
   });
-}, { threshold: 0.1, rootMargin: '0px 0px -40px 0px' });
+}, { threshold: 0.05, rootMargin: '0px 0px -20px 0px' });
 
 entries.forEach(entry => observer.observe(entry));
 </script>
