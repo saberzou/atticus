@@ -231,19 +231,12 @@ footer {
 
 /* --- Entry animations --- */
 .entry {
-  opacity: 1;
-  transform: translateY(0);
-  transition: opacity 0.6s ease, transform 0.6s ease;
+  animation: fadeUp 0.6s ease both;
 }
 
-.entry.animate {
-  opacity: 0;
-  transform: translateY(20px);
-}
-
-.entry.animate.visible {
-  opacity: 1;
-  transform: translateY(0);
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 </style>
 </head>
@@ -337,23 +330,7 @@ footer {
 
 </div>
 
-<script>
-// Intersection observer for entry animations
-const entries = document.querySelectorAll('.entry');
-// Set initial hidden state via JS so content shows if JS fails
-entries.forEach(entry => entry.classList.add('animate'));
-
-const observer = new IntersectionObserver((items) => {
-  items.forEach(item => {
-    if (item.isIntersecting) {
-      item.classList.add('visible');
-      observer.unobserve(item);
-    }
-  });
-}, { threshold: 0.05, rootMargin: '0px 0px -20px 0px' });
-
-entries.forEach(entry => observer.observe(entry));
-</script>
+<script>/* no-op — CSS handles animations */</script>
 
 <script type="module">
 import('https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js').then(THREE => {const canvas = document.getElementById('hero-canvas');
