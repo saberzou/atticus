@@ -498,12 +498,13 @@ import(THREE_URL).then(THREE => {
       const s = 0.2 + 0.8 * ease;
       lg.scale.set(s, s, s);
 
-      // Subtle float + rotation drift after landing
+      // Subtle float + slow rotation after landing
       if (t >= 1) {
         lg.position.y = ld.baseY + Math.sin(elapsed * ld.floatSpeed + ld.floatOffset) * ld.floatAmp;
-        // Gentle rotation oscillation
-        lg.rotation.x = ld.targetRot.x + Math.sin(elapsed * ld.rotSpeed + ld.floatOffset) * 0.02;
-        lg.rotation.y = ld.targetRot.y + Math.cos(elapsed * ld.rotSpeed * 0.7 + ld.floatOffset) * 0.02;
+        // Slow continuous rotation per letter
+        lg.rotation.x = ld.targetRot.x + Math.sin(elapsed * 0.15 + ld.floatOffset) * 0.08;
+        lg.rotation.y = ld.targetRot.y + elapsed * (0.05 + i * 0.01) * (i % 2 === 0 ? 1 : -1);
+        lg.rotation.z = ld.targetRot.z + Math.cos(elapsed * 0.12 + ld.floatOffset) * 0.04;
       }
     });
 
