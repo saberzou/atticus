@@ -8,9 +8,6 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=DM+Sans:ital,wght@0,400;0,500;1,400&family=DM+Mono:wght@400&display=swap" rel="stylesheet">
-<script type="importmap">
-{ "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js" } }
-</script>
 <style>
 *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
 
@@ -359,9 +356,7 @@ entries.forEach(entry => observer.observe(entry));
 </script>
 
 <script type="module">
-import * as THREE from 'three';
-
-const canvas = document.getElementById('hero-canvas');
+import('https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js').then(THREE => {const canvas = document.getElementById('hero-canvas');
 const wrap = canvas.parentElement;
 
 const scene = new THREE.Scene();
@@ -511,6 +506,7 @@ const ro = new ResizeObserver(() => {
   renderer.setSize(w, h);
 });
 ro.observe(wrap);
+}).catch(() => {}); // Three.js failed to load — content still works
 </script>
 
 </body>
