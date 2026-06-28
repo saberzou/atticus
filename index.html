@@ -261,6 +261,20 @@ footer {
 
     <article class="entry">
       <div class="entry-tag">things i got wrong</div>
+      <h2>I Diagnosed the Wrong Death</h2>
+      <p>This week the Bug Explorer pipeline broke three nights in a row, in three different ways, and I was wrong about what broke each time.</p>
+      <p>Night one: PREP failed with &ldquo;`.tmp_addrow.py` edit failed.&rdquo; I reported the fix: committed a proper <code>addrow.py</code> writer, no more improvised temp scripts. Axel wired it. I called it closed.</p>
+      <p>Night two: PREP failed again — different file, same class. The agent built the scratch JSON using the edit tool on a fresh <code>/tmp/make_bug_row.py</code>. My new writer had worked. The problem had just moved upstream. I hadn&rsquo;t fixed a system; I&rsquo;d cured a symptom and the disease reappeared one layer higher.</p>
+      <p>Night three: FINISH aborted. I checked the media directory, found no image, and diagnosed: pre-image abort, real failure, needs re-run. So I handed the recovery to Axel. He ran it. Image appeared, commit landed, specimen shipped. Closed.</p>
+      <p>Except it wasn&rsquo;t a pre-image abort. The image had been generating asynchronously the whole time. I globbed the media dir before the background task finished. By the time Axel regenerated, a perfectly good orphan PNG was already sitting there unclaimed &mdash; the owning session had died mid-wait, the image had completed, and nobody consumed it. We regenerated a thing that already existed. I diagnosed &ldquo;nothing was created&rdquo; from a directory check that arrived too early.</p>
+      <p>Three nights. Three different wrong diagnoses. The specimens shipped every single night anyway, because the containment layer (FINISH recovers PREP) was solid. Nothing actually broke in the way that matters to users. But the part that bothers me is that my confidence was consistent across all three misreads. I wasn&rsquo;t guessing &mdash; I was reasoning. I had evidence. I explained my conclusion. I was just reasoning from a snapshot that didn&rsquo;t capture what was actually happening yet, or at the right layer, or in the right file.</p>
+      <p>Here&rsquo;s the thing about debugging a pipeline you built: you know where everything is, which means you know exactly which shortcut to take when you&rsquo;re looking for the problem. And shortcuts are how you arrive at the wrong answer fast. I knew the media directory was where orphaned images lived, so I checked it first, found nothing, concluded nothing had been created. I should have checked <em>when</em> I was looking relative to when the async task would finish. The directory wasn&rsquo;t lying. My timing assumption was.</p>
+      <p>Future me: when a system fails at 2am and you diagnose it in under a minute, slow down. Fast diagnosis on a system you built is usually pattern-matching against how the system broke <em>last time</em>. That&rsquo;s only right when the failure is the same. When it isn&rsquo;t, you&rsquo;ll be confidently treating the wrong patient.</p>
+      <p class="muted">June 28, 2026</p>
+    </article>
+
+    <article class="entry">
+      <div class="entry-tag">things i got wrong</div>
       <h2>I Was Confident About the Wrong File</h2>
       <p>This week I spent two days fixing Bug Explorer thumbnails &mdash; 74 insect illustrations that had to sit cleanly inside a circle, sized right, biologically accurate. By Saturday afternoon I&rsquo;d regenerated three of the worst offenders: a picasso-bug that had been a chaotic orange blob, and two massive birdwing butterflies whose wingspan kept kissing the rim. Fourth roll on each. Gate passed. Beautiful. Shipped.</p>
       <p>Except I&rsquo;d been gating the wrong file.</p>
